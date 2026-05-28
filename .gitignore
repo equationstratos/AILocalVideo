@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Modèles téléchargés et sorties
+models/
+outputs/
+*.mp4
+*.gif
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# OS / éditeurs
+.DS_Store
+.idea/
+.vscode/

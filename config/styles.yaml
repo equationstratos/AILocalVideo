@@ -1,0 +1,78 @@
+# Presets de styles de génération vidéo.
+# Chaque style sélectionne un "backend" (moteur/modèle) et fournit des prompts
+# et paramètres par défaut. Le prompt de l'utilisateur est fusionné avec
+# prompt_prefix / prompt_suffix avant la génération.
+#
+# Les défauts sont volontairement TRÈS bas (peu de frames/steps) car la cible
+# est un CPU sans GPU : augmentez-les si vous avez de la patience ou un GPU.
+
+styles:
+  animation:
+    label: "Animation 2D"
+    backend: animatediff
+    prompt_prefix: ""
+    prompt_suffix: ", smooth 2D animation, vibrant colors, animated style"
+    negative_prompt: "low quality, worst quality, blurry, distorted, watermark, text"
+    defaults:
+      num_frames: 16
+      fps: 8
+      steps: 12
+      guidance: 7.5
+      width: 512
+      height: 512
+
+  anime:
+    label: "Anime"
+    backend: animatediff
+    prompt_prefix: ""
+    prompt_suffix: ", anime style, cel shading, detailed, studio anime"
+    negative_prompt: "low quality, worst quality, blurry, deformed, extra limbs, watermark, text"
+    defaults:
+      num_frames: 16
+      fps: 8
+      steps: 12
+      guidance: 7.5
+      width: 512
+      height: 512
+
+  cartoon:
+    label: "Cartoon"
+    backend: animatediff
+    prompt_prefix: ""
+    prompt_suffix: ", cartoon style, bold outlines, flat colors, playful"
+    negative_prompt: "low quality, worst quality, blurry, realistic, watermark, text"
+    defaults:
+      num_frames: 16
+      fps: 8
+      steps: 12
+      guidance: 7.5
+      width: 512
+      height: 512
+
+  realistic:
+    label: "Réaliste"
+    backend: cogvideox
+    prompt_prefix: ""
+    prompt_suffix: ", photorealistic, highly detailed, natural lighting, 4k"
+    negative_prompt: "cartoon, anime, drawing, low quality, blurry, distorted, watermark"
+    defaults:
+      num_frames: 17
+      fps: 8
+      steps: 20
+      guidance: 6.0
+      width: 720
+      height: 480
+
+  cinematic:
+    label: "Cinématique"
+    backend: cogvideox
+    prompt_prefix: ""
+    prompt_suffix: ", cinematic shot, film grain, dramatic lighting, shallow depth of field"
+    negative_prompt: "cartoon, anime, low quality, blurry, overexposed, watermark"
+    defaults:
+      num_frames: 17
+      fps: 8
+      steps: 20
+      guidance: 6.0
+      width: 720
+      height: 480
