@@ -36,9 +36,10 @@ def test_generate_returns_job_id(monkeypatch):
     # On empêche tout traitement réel : le submit ne doit pas lancer de modèle.
     captured = {}
 
-    def fake_submit(style, params):
+    def fake_submit(style, params, num_segments=1):
         captured["style"] = style
         captured["params"] = params
+        captured["num_segments"] = num_segments
         return "fake-job-id"
 
     monkeypatch.setattr("backend.main.get_job_store", lambda: type(
@@ -47,13 +48,19 @@ def test_generate_returns_job_id(monkeypatch):
 
     r = client.post(
         "/api/generate",
-        json={"prompt": "a robot dancing", "style": "animation", "num_frames": 8},
+        json={
+            "prompt": "a robot dancing",
+            "style": "animation",
+            "num_frames": 8,
+            "num_segments": 4,
+        },
     )
     assert r.status_code == 200
     assert r.json()["job_id"] == "fake-job-id"
     # Les défauts du style sont fusionnés et les limites appliquées.
     assert captured["style"] == "animation"
     assert captured["params"].num_frames == 8
+    assert captured["num_segments"] == 4
     assert "animated style" in captured["params"].prompt
 
 

@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     max_num_frames: int = 49
     max_steps: int = 50
     max_resolution: int = 1024
+    # Nombre max de segments enchaînés (durée = num_segments * num_frames / fps).
+    max_segments: int = 60
 
     # Serveur
     host: str = "127.0.0.1"

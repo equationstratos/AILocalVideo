@@ -85,6 +85,30 @@ curl http://127.0.0.1:8000/api/jobs/<job_id>
 curl http://127.0.0.1:8000/api/jobs/<job_id>/video -o out.mp4
 ```
 
+## Vidéos longues (chaînage de segments)
+
+Les modèles ne génèrent qu'un court clip à la fois (≈ 2-6 s). Pour des vidéos
+plus longues, le paramètre **`num_segments`** enchaîne plusieurs clips et les
+assemble en une seule vidéo.
+
+> Durée totale ≈ `num_segments * num_frames / fps`
+
+```bash
+# ~8 s d'animation : 4 segments de 16 frames à 8 fps
+curl -X POST http://127.0.0.1:8000/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"a cat surfing","style":"animation","num_frames":16,"num_segments":4}'
+```
+
+- **Continuité** : pour les styles d'animation (backend AnimateDiff), la
+  dernière frame d'un segment sert d'image de départ au suivant
+  (`supports_init_image`), pour des transitions fluides. Les styles réaliste/
+  cinématique (CogVideoX) ne gèrent pas encore cette continuité : leurs segments
+  sont mis bout à bout (coupures possibles).
+- **Coût** : le temps de rendu est ~proportionnel au nombre de segments. Sur
+  CPU, une vidéo longue peut prendre beaucoup de temps.
+- Plafond : `AILV_MAX_SEGMENTS` (60 par défaut), `AILV_MAX_NUM_FRAMES`.
+
 ## Styles
 
 Les styles sont définis dans `config/styles.yaml`. Chaque style choisit un

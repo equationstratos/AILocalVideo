@@ -6,6 +6,7 @@ export default function App() {
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("");
   const [numFrames, setNumFrames] = useState("");
+  const [numSegments, setNumSegments] = useState("1");
   const [steps, setSteps] = useState("");
   const [seed, setSeed] = useState("");
 
@@ -34,6 +35,7 @@ export default function App() {
     try {
       const payload = { prompt, style };
       if (numFrames) payload.num_frames = Number(numFrames);
+      if (numSegments) payload.num_segments = Number(numSegments);
       if (steps) payload.steps = Number(steps);
       if (seed) payload.seed = Number(seed);
       const { job_id } = await startGeneration(payload);
@@ -102,6 +104,15 @@ export default function App() {
               />
             </label>
             <label>
+              Segments (durée)
+              <input
+                type="number"
+                min="1"
+                value={numSegments}
+                onChange={(e) => setNumSegments(e.target.value)}
+              />
+            </label>
+            <label>
               Étapes (steps)
               <input
                 type="number"
@@ -122,6 +133,17 @@ export default function App() {
               />
             </label>
           </div>
+          {selected && (
+            <p className="hint">
+              Durée estimée ≈{" "}
+              {(
+                ((Number(numFrames) || selected.defaults.num_frames) *
+                  (Number(numSegments) || 1)) /
+                selected.defaults.fps
+              ).toFixed(1)}{" "}
+              s — plus de segments = vidéo plus longue, mais rendu plus lent.
+            </p>
+          )}
         </details>
 
         <button type="submit" disabled={busy || !prompt}>

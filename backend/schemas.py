@@ -38,6 +38,11 @@ class GenerateRequest(BaseModel):
     style: str = Field(..., description="Nom d'un style défini dans styles.yaml")
 
     # Surcharges optionnelles des défauts du style.
+    num_segments: int = Field(
+        default=1,
+        ge=1,
+        description="Nombre de clips enchaînés (durée totale ≈ num_segments * num_frames / fps)",
+    )
     num_frames: Optional[int] = Field(default=None, ge=1)
     fps: Optional[int] = Field(default=None, ge=1, le=60)
     steps: Optional[int] = Field(default=None, ge=1)

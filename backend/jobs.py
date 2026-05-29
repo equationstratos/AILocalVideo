@@ -31,6 +31,7 @@ class Job:
     job_id: str
     style: str
     params: GenerationParams
+    num_segments: int = 1
     status: str = QUEUED
     progress: float = 0.0
     message: Optional[str] = None
@@ -66,10 +67,14 @@ class JobStore:
             self._started = True
 
     # ----- API publique -----------------------------------------------------
-    def submit(self, style: str, params: GenerationParams) -> str:
+    def submit(
+        self, style: str, params: GenerationParams, num_segments: int = 1
+    ) -> str:
         self.start()
         job_id = uuid.uuid4().hex
-        job = Job(job_id=job_id, style=style, params=params)
+        job = Job(
+            job_id=job_id, style=style, params=params, num_segments=num_segments
+        )
         with self._jobs_lock:
             self._jobs[job_id] = job
         self._queue.put(job_id)
@@ -106,7 +111,18 @@ class JobStore:
             def _progress(frac: float) -> None:
                 self._update(job, progress=float(frac))
 
-            backend.generate(job.params, output_path, progress_cb=_progress)
+            if job.num_segments > 1:
+                from .generation.chaining import generate_long_video
+
+                generate_long_video(
+                    backend,
+                    job.params,
+                    job.num_segments,
+                    output_path,
+                    progress_cb=_progress,
+                )
+            else:
+                backend.generate(job.params, output_path, progress_cb=_progress)
             self._update(
                 job, status=DONE, progress=1.0, output_path=output_path
             )

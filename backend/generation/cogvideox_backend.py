@@ -7,10 +7,7 @@ Attention : la génération peut prendre **très** longtemps sans GPU.
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Optional
-
-from .base import GenerationParams, ProgressCallback, VideoBackend
+from .base import VideoBackend
 from .registry import register_backend
 
 MODEL_ID = "THUDM/CogVideoX-2b"
@@ -46,17 +43,11 @@ class CogVideoXBackend(VideoBackend):
         self._pipe = pipe
         self._loaded = True
 
-    def generate(
-        self,
-        params: GenerationParams,
-        output_path: Path,
-        progress_cb: Optional[ProgressCallback] = None,
-    ) -> Path:
+    def generate_frames(self, params, init_image=None, progress_cb=None):
         if not self._loaded:
             self.load()
 
         import torch
-        from diffusers.utils import export_to_video
 
         generator = None
         if params.seed is not None:
@@ -66,9 +57,11 @@ class CogVideoXBackend(VideoBackend):
 
         def _on_step(pipe, step_index, timestep, callback_kwargs):
             if progress_cb is not None:
-                progress_cb(min((step_index + 1) / total * 0.95, 0.95))
+                progress_cb(min((step_index + 1) / total, 1.0))
             return callback_kwargs
 
+        # init_image ignoré : ce backend texte->vidéo ne gère pas encore le
+        # conditionnement par image (voir CogVideoX-5b-I2V pour une évolution).
         result = self._pipe(
             prompt=params.prompt,
             negative_prompt=params.negative_prompt or None,
@@ -79,10 +72,4 @@ class CogVideoXBackend(VideoBackend):
             generator=generator,
             callback_on_step_end=_on_step,
         )
-
-        frames = result.frames[0]
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        export_to_video(frames, str(output_path), fps=params.fps)
-        if progress_cb is not None:
-            progress_cb(1.0)
-        return output_path
+        return result.frames[0]

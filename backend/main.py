@@ -75,7 +75,7 @@ def list_backend_info() -> list[BackendInfo]:
     return out
 
 
-def _resolve_params(req: GenerateRequest) -> tuple[str, GenerationParams]:
+def _resolve_params(req: GenerateRequest) -> tuple[str, GenerationParams, int]:
     """Fusionne la requête avec les défauts du style et applique les limites."""
     styles = get_styles()
     if req.style not in styles:
@@ -102,13 +102,14 @@ def _resolve_params(req: GenerateRequest) -> tuple[str, GenerationParams]:
         height=height,
         seed=req.seed,
     )
-    return req.style, params
+    num_segments = min(req.num_segments, settings.max_segments)
+    return req.style, params, num_segments
 
 
 @app.post("/api/generate", response_model=GenerateResponse)
 def generate(req: GenerateRequest) -> GenerateResponse:
-    style, params = _resolve_params(req)
-    job_id = get_job_store().submit(style, params)
+    style, params, num_segments = _resolve_params(req)
+    job_id = get_job_store().submit(style, params, num_segments=num_segments)
     return GenerateResponse(job_id=job_id)
 
 

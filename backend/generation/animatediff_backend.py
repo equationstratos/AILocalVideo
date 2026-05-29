@@ -11,10 +11,7 @@ test / pour exposer les métadonnées via l'API).
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Optional
-
-from .base import GenerationParams, ProgressCallback, VideoBackend
+from .base import VideoBackend
 from .registry import register_backend
 
 # Modèles HuggingFace utilisés (téléchargés au 1er usage).
@@ -26,10 +23,14 @@ BASE_MODEL = "emilianJR/epiCRealism"  # checkpoint SD1.5 polyvalent
 class AnimateDiffBackend(VideoBackend):
     name = "animatediff"
     supports_styles = ["animation", "anime", "cartoon"]
+    # Continuité activée : on initialise le 1er latent du segment à partir de la
+    # dernière frame du segment précédent (img2img léger sur la frame initiale).
+    supports_init_image = True
 
     def __init__(self, device: str = "cpu") -> None:
         super().__init__(device=device)
         self._pipe = None
+        self._v2v = None
 
     def load(self) -> None:
         if self._loaded:
@@ -62,17 +63,25 @@ class AnimateDiffBackend(VideoBackend):
         self._pipe = pipe
         self._loaded = True
 
-    def generate(
-        self,
-        params: GenerationParams,
-        output_path: Path,
-        progress_cb: Optional[ProgressCallback] = None,
-    ) -> Path:
+    # Force de régénération en mode continuité : plus c'est bas, plus la frame
+    # de départ est préservée (continuité forte) ; plus c'est haut, plus le
+    # mouvement est libre.
+    INIT_STRENGTH = 0.7
+
+    def _vid2vid_pipe(self):
+        """Pipeline video-to-video partageant les poids déjà chargés."""
+        if self._v2v is None:
+            from diffusers import AnimateDiffVideoToVideoPipeline
+
+            self._v2v = AnimateDiffVideoToVideoPipeline(**self._pipe.components)
+            self._v2v.to(self.device)
+        return self._v2v
+
+    def generate_frames(self, params, init_image=None, progress_cb=None):
         if not self._loaded:
             self.load()
 
         import torch
-        from diffusers.utils import export_to_video
 
         generator = None
         if params.seed is not None:
@@ -82,25 +91,36 @@ class AnimateDiffBackend(VideoBackend):
 
         def _on_step(pipe, step_index, timestep, callback_kwargs):
             if progress_cb is not None:
-                # Réserve les derniers % à l'encodage/export.
-                progress_cb(min((step_index + 1) / total * 0.95, 0.95))
+                progress_cb(min((step_index + 1) / total, 1.0))
             return callback_kwargs
 
-        result = self._pipe(
-            prompt=params.prompt,
-            negative_prompt=params.negative_prompt or None,
-            num_frames=params.num_frames,
-            num_inference_steps=params.steps,
-            guidance_scale=params.guidance,
-            width=params.width,
-            height=params.height,
-            generator=generator,
-            callback_on_step_end=_on_step,
-        )
+        if init_image is None:
+            # Premier segment : texte -> vidéo classique.
+            result = self._pipe(
+                prompt=params.prompt,
+                negative_prompt=params.negative_prompt or None,
+                num_frames=params.num_frames,
+                num_inference_steps=params.steps,
+                guidance_scale=params.guidance,
+                width=params.width,
+                height=params.height,
+                generator=generator,
+                callback_on_step_end=_on_step,
+            )
+        else:
+            # Segment suivant : on part de la dernière frame précédente en
+            # construisant une "vidéo" qui la répète, puis on la ré-anime.
+            init = init_image.resize((params.width, params.height))
+            seed_video = [init] * params.num_frames
+            result = self._vid2vid_pipe()(
+                video=seed_video,
+                prompt=params.prompt,
+                negative_prompt=params.negative_prompt or None,
+                strength=self.INIT_STRENGTH,
+                num_inference_steps=params.steps,
+                guidance_scale=params.guidance,
+                generator=generator,
+                callback_on_step_end=_on_step,
+            )
 
-        frames = result.frames[0]
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        export_to_video(frames, str(output_path), fps=params.fps)
-        if progress_cb is not None:
-            progress_cb(1.0)
-        return output_path
+        return result.frames[0]
