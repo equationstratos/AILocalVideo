@@ -116,13 +116,62 @@ backend, ajoute un suffixe de prompt, un prompt négatif et des paramètres par
 défaut (frames, steps, fps, résolution…). Ajoutez vos propres styles en éditant
 ce fichier — aucun code à modifier.
 
+## GPU (recommandé pour de vrais résultats)
+
+L'app détecte le device via `AILV_DEVICE`. Sur GPU, les modèles se chargent en
+`bfloat16` avec offload mémoire automatique.
+
+```bash
+# torch CUDA (adapter cu121/cu118 selon votre driver)
+pip install torch --index-url https://download.pytorch.org/whl/cu121
+pip install -e .
+
+# Lancer en GPU, en utilisant les gros modèles
+AILV_DEVICE=cuda \
+AILV_HOST=0.0.0.0 \
+AILV_COGVIDEOX_MODEL=THUDM/CogVideoX-5b \
+ailocalvideo
+```
+
+### Modèles et styles disponibles
+
+| Style | Backend | Idéal pour | VRAM conseillée |
+|-------|---------|-----------|-----------------|
+| `animation`, `anime`, `cartoon` | AnimateDiff (SD1.5) | dessins animés, continuité | 6-8 Go |
+| `realistic`, `cinematic` | CogVideoX (2B/5B) | réaliste + **vraie continuité** (I2V) | 16-24 Go |
+| `ltx_realistic`, `ltx_cinematic` | LTX-Video | rapide, haute qualité, clips longs | 16 Go+ |
+
+- **Continuité réelle** : pour CogVideoX et LTX, la dernière frame d'un segment
+  conditionne le segment suivant (`image-to-video`) → enchaînement fluide pour
+  des vidéos longues.
+- Réglages GPU : `AILV_PRECISION` (`bfloat16`/`float16`), `AILV_ENABLE_OFFLOAD`
+  (`true` = économe en VRAM ; `false` = tout en VRAM, plus rapide si ça tient).
+
+### Reco pour 32 Go de VRAM
+
+Tout en VRAM, modèle 5B + LTX, segments longs :
+
+```bash
+AILV_DEVICE=cuda AILV_HOST=0.0.0.0 \
+AILV_COGVIDEOX_MODEL=THUDM/CogVideoX-5b \
+AILV_ENABLE_OFFLOAD=false \
+ailocalvideo
+```
+
+Pour une vidéo réaliste de ~30 s avec continuité : style `ltx_cinematic`,
+`num_segments` élevé (chaque segment ≈ 6-7 s à 24 fps).
+
 ## Configuration
 
 Variables d'environnement (préfixe `AILV_`) :
 
 - `AILV_DEVICE` : `cpu` (défaut) ou `cuda`
+- `AILV_PRECISION` : `bfloat16` (défaut GPU) ou `float16`
+- `AILV_ENABLE_OFFLOAD` : `true` (défaut) économe en VRAM, `false` = plus rapide
+- `AILV_COGVIDEOX_MODEL`, `AILV_COGVIDEOX_I2V_MODEL`, `AILV_LTX_MODEL` : modèles
 - `AILV_PORT`, `AILV_HOST`
-- `AILV_MAX_NUM_FRAMES`, `AILV_MAX_STEPS`, `AILV_MAX_RESOLUTION` : garde-fous
+- `AILV_MAX_NUM_FRAMES`, `AILV_MAX_STEPS`, `AILV_MAX_RESOLUTION`,
+  `AILV_MAX_SEGMENTS` : garde-fous
 
 ## Tests
 
@@ -136,9 +185,11 @@ backends lourds sont remplacés par des doublures.
 ## Feuille de route
 
 - [ ] Web UI (Vite + React) : formulaire, suivi de progression, lecteur vidéo
-- [ ] Backends GPU : LTX-Video, HunyuanVideo, Wan2.1
+- [x] Backends GPU : LTX-Video, CogVideoX-5B (+I2V)
+- [x] Chaînage de segments avec continuité image-to-video
+- [ ] Autres modèles : HunyuanVideo, Wan2.1
 - [ ] Persistance des jobs (SQLite)
-- [ ] Image-to-video, audio, upscaling, interpolation de frames
+- [ ] Audio, upscaling, interpolation de frames (RIFE)
 ```
 
 ## Ajouter un backend

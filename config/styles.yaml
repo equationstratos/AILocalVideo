@@ -76,3 +76,33 @@ styles:
       guidance: 6.0
       width: 720
       height: 480
+
+  # --- Styles GPU (LTX-Video) : rapides, haute qualité, clips plus longs. ---
+  # num_frames est arrondi à 8k+1 par le backend ; à ~24 fps.
+  ltx_realistic:
+    label: "Réaliste rapide (LTX, GPU)"
+    backend: ltx
+    prompt_prefix: ""
+    prompt_suffix: ", photorealistic, highly detailed, natural lighting, sharp focus"
+    negative_prompt: "worst quality, inconsistent motion, blurry, jittery, distorted, watermark"
+    defaults:
+      num_frames: 121
+      fps: 24
+      steps: 40
+      guidance: 3.0
+      width: 768
+      height: 512
+
+  ltx_cinematic:
+    label: "Cinématique (LTX, GPU)"
+    backend: ltx
+    prompt_prefix: ""
+    prompt_suffix: ", cinematic, dramatic lighting, film look, shallow depth of field, 35mm"
+    negative_prompt: "worst quality, inconsistent motion, blurry, jittery, distorted, watermark"
+    defaults:
+      num_frames: 161
+      fps: 24
+      steps: 40
+      guidance: 3.0
+      width: 768
+      height: 512

@@ -23,17 +23,29 @@ class Settings(BaseSettings):
 
     # Matériel : "cpu" par défaut (cible du projet). Mettre "cuda" si GPU dispo.
     device: str = "cpu"
+    # Précision sur GPU : "bfloat16" (défaut, recommandé) ou "float16".
+    precision: str = "bfloat16"
+    # Sur GPU, décharge les sous-modèles inactifs en RAM (enable_model_cpu_offload)
+    # pour faire tenir de gros modèles. Mettre False si VRAM abondante = + rapide.
+    enable_offload: bool = True
+
+    # Identifiants des modèles, surchargeables par variable d'environnement.
+    # CogVideoX : 2B est léger (CPU) ; 5B est bien meilleur (GPU 16Go+).
+    cogvideox_model: str = "THUDM/CogVideoX-2b"
+    cogvideox_i2v_model: str = "THUDM/CogVideoX-5b-I2V"
+    ltx_model: str = "Lightricks/LTX-Video"
 
     # Chemins
     styles_file: Path = REPO_ROOT / "config" / "styles.yaml"
     outputs_dir: Path = REPO_ROOT / "outputs"
 
-    # Limites de sécurité pour éviter des générations interminables sur CPU.
-    max_num_frames: int = 49
-    max_steps: int = 50
-    max_resolution: int = 1024
+    # Limites de sécurité. Élevées pour le GPU ; sur CPU, gardez de petites
+    # valeurs dans les requêtes (les défauts de styles.yaml restent bas).
+    max_num_frames: int = 257
+    max_steps: int = 60
+    max_resolution: int = 1280
     # Nombre max de segments enchaînés (durée = num_segments * num_frames / fps).
-    max_segments: int = 60
+    max_segments: int = 120
 
     # Serveur
     host: str = "127.0.0.1"

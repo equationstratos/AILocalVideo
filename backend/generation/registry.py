@@ -45,3 +45,4 @@ def backend_class(name: str) -> type[VideoBackend]:
 # Placé en fin de module pour éviter les imports circulaires.
 from . import animatediff_backend  # noqa: E402,F401
 from . import cogvideox_backend  # noqa: E402,F401
+from . import ltx_backend  # noqa: E402,F401
